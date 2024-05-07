@@ -49,6 +49,45 @@ func (s *Screen) SetCell(x, y int, value rune) error {
 	return nil
 }
 
+func (s *Screen) SetRow(col, row int, value string) {
+	x, runes := negativeClip(col, value)
+
+	for _, r := range runes {
+		err := s.SetCell(x, row, r)
+		x += 1
+		if err != nil {
+			break
+		}
+	}
+}
+
+func negativeClip(ix int, value string) (int, []rune) {
+	runes := []rune(value)
+
+	if ix < 0 {
+		ix *= -1
+		if ix > len(runes) {
+			return 0, []rune{}
+		}
+		runes = runes[ix:]
+		ix = 0
+	}
+
+	return ix, runes
+}
+
+func (s *Screen) SetCol(col, row int, value string) {
+	y, runes := negativeClip(row, value)
+
+	for _, r := range runes {
+		err := s.SetCell(col, y, r)
+		y += 1
+		if err != nil {
+			break
+		}
+	}
+}
+
 func (s *Screen) Render() string {
 	builder := strings.Builder{}
 

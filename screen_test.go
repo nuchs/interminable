@@ -39,7 +39,7 @@ func TestBadSetCell(t *testing.T) {
 	}
 }
 
-func TestRender(t *testing.T) {
+func TestSetCell(t *testing.T) {
 	s := interminable.NewScreen(3, 2)
 	s.SetCell(0, 0, 'a')
 	s.SetCell(1, 1, 'b')
@@ -51,5 +51,61 @@ func TestRender(t *testing.T) {
 
 	if result != expected {
 		t.Errorf("expected %q, got %q", expected, result)
+	}
+}
+
+func TestSetRow(t *testing.T) {
+	testCases := []struct {
+		desc     string
+		row, col int
+		value    string
+		expected string
+	}{
+		{desc: "full top row", row: 0, col: 0, value: "aa", expected: "\033[0;0Haa\r\n  \r\n  "},
+		{desc: "full middle row", row: 1, col: 0, value: "aa", expected: "\033[0;0H  \r\naa\r\n  "},
+		{desc: "full bottom row", row: 2, col: 0, value: "aa", expected: "\033[0;0H  \r\n  \r\naa"},
+		{desc: "clip left", row: 0, col: -1, value: "aa", expected: "\033[0;0Ha \r\n  \r\n  "},
+		{desc: "clip right", row: 0, col: 1, value: "aa", expected: "\033[0;0H a\r\n  \r\n  "},
+		{desc: "clip left fully", row: 0, col: -9, value: "aa", expected: "\033[0;0H  \r\n  \r\n  "},
+		{desc: "clip right fully", row: 0, col: 9, value: "aa", expected: "\033[0;0H  \r\n  \r\n  "},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			s := interminable.NewScreen(2, 3)
+			s.SetRow(tc.col, tc.row, tc.value)
+			result := s.Render()
+			if result != tc.expected {
+				t.Errorf("expected %q, got %q", tc.expected, result)
+			}
+		})
+	}
+}
+
+func TestSetCol(t *testing.T) {
+	testCases := []struct {
+		desc     string
+		row, col int
+		value    string
+		expected string
+	}{
+		{desc: "full left col", row: 0, col: 0, value: "aa", expected: "\033[0;0Ha  \r\na  "},
+		{desc: "full middle col", row: 0, col: 1, value: "aa", expected: "\033[0;0H a \r\n a "},
+		{desc: "full right col", row: 0, col: 2, value: "aa", expected: "\033[0;0H  a\r\n  a"},
+		{desc: "clip top", row: -1, col: 0, value: "aa", expected: "\033[0;0Ha  \r\n   "},
+		{desc: "clip bottom", row: 1, col: 0, value: "aa", expected: "\033[0;0H   \r\na  "},
+		{desc: "clip top fully", row: -9, col: 0, value: "aa", expected: "\033[0;0H   \r\n   "},
+		{desc: "clip bottom fully", row: 9, col: 0, value: "aa", expected: "\033[0;0H   \r\n   "},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.desc, func(t *testing.T) {
+			s := interminable.NewScreen(3, 2)
+			s.SetCol(tc.col, tc.row, tc.value)
+			result := s.Render()
+			if result != tc.expected {
+				t.Errorf("expected %q, got %q", tc.expected, result)
+			}
+		})
 	}
 }

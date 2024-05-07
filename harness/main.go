@@ -23,18 +23,9 @@ func run() error {
 	}
 	defer term.Close()
 
-	x, y := ((term.Screen.Width-1)/2)-6, (term.Screen.Height-1)/2
-	term.Screen.SetCell(x, y, 'H')
-	term.Screen.SetCell(x+1, y, 'e')
-	term.Screen.SetCell(x+2, y, 'l')
-	term.Screen.SetCell(x+3, y, 'l')
-	term.Screen.SetCell(x+4, y, 'o')
-	term.Screen.SetCell(x+5, y, ' ')
-	term.Screen.SetCell(x+6, y, 'W')
-	term.Screen.SetCell(x+7, y, 'o')
-	term.Screen.SetCell(x+8, y, 'r')
-	term.Screen.SetCell(x+9, y, 'l')
-	term.Screen.SetCell(x+10, y, 'd')
+	x, y := ((term.Screen.Width-1)/2)-6, 5
+	term.Screen.SetRow(x, y, "Hello World")
+	term.Screen.SetCol(x, y, "Hello World")
 
 	s := term.Screen.Render()
 	fmt.Print(s)
