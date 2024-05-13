@@ -8,7 +8,7 @@ import (
 
 func TestNewScreen(t *testing.T) {
 	s := interminable.NewScreen(10, 10)
-	if s.Width != 10 || s.Height != 10 {
+	if s.Width() != 10 || s.Height() != 10 {
 		t.Error("wrong screen dimensions")
 	}
 }

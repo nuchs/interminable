@@ -3,30 +3,42 @@ package main
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/nuchs/interminable"
 )
 
 func main() {
 	run()
-	time.Sleep(3 * time.Second)
 	fmt.Println("--------------------------------------------------")
 	fmt.Println("Ok I love you bye bye!")
 }
 
-func run() error {
+func run() {
 	term := interminable.Terminal{}
 	if err := term.Open(os.Stdin.Fd()); err != nil {
 		fmt.Println(err)
-		return err
+		return
 	}
 	defer term.Close()
 
-	x, y := ((term.Screen.Width-1)/2)-6, 5
-	term.Screen.SetRow(x, y, "Hello World")
-	term.Screen.SetCol(x, y, "Hello World")
-	term.Refresh()
+	notify := make(chan interminable.WinSize)
+	term.SubscribeToResizes(notify)
+	count := 0
 
-	return nil
+	for {
+		Draw(&term)
+		<-notify
+		count++
+
+		if count == 3 {
+			break
+		}
+	}
+}
+
+func Draw(term *interminable.Terminal) {
+	x, y := ((term.Screen.Width()-1)/2)-6, 5
+	msg := fmt.Sprintf("Hello World (%d, %d)", term.Screen.Width(), term.Screen.Height())
+	term.Screen.SetRow(x, y, msg)
+	term.Refresh()
 }

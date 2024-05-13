@@ -13,14 +13,21 @@ const (
 )
 
 type Cell struct {
-	X, Y  int
 	Value rune
 }
 
 type Screen struct {
-	Width, Height int
+	width, height int
 	capW, capH    int
 	cells         [][]Cell
+}
+
+func (s *Screen) Width() int {
+	return s.width
+}
+
+func (s *Screen) Height() int {
+	return s.height
 }
 
 func NewScreen(w, h int) Screen {
@@ -28,13 +35,13 @@ func NewScreen(w, h int) Screen {
 	for i := 0; i < h; i++ {
 		cells[i] = make([]Cell, w)
 		for j := 0; j < w; j++ {
-			cells[i][j] = Cell{i, j, ' '}
+			cells[i][j] = Cell{' '}
 		}
 	}
 
 	return Screen{
-		Width:  w,
-		Height: h,
+		width:  w,
+		height: h,
 		capW:   w,
 		capH:   h,
 		cells:  cells,
@@ -42,11 +49,11 @@ func NewScreen(w, h int) Screen {
 }
 
 func (s *Screen) SetCell(x, y int, value rune) error {
-	if x < 0 || x >= s.Width || y < 0 || y >= s.Height {
+	if x < 0 || x >= s.width || y < 0 || y >= s.height {
 		return ErrOutOfBounds
 	}
 
-	s.cells[y][x] = Cell{x, y, value}
+	s.cells[y][x] = Cell{value}
 
 	return nil
 }
@@ -77,7 +84,7 @@ func (s *Screen) SetCol(col, row int, value string) {
 
 func (s *Screen) Resize(w, h int) {
 	if w > s.capW {
-		for i := 0; i < s.Height; i++ {
+		for i := 0; i < s.height; i++ {
 			oldCells := s.cells[i]
 			s.cells[i] = make([]Cell, w)
 			copy(s.cells[i], oldCells)
@@ -86,15 +93,15 @@ func (s *Screen) Resize(w, h int) {
 		s.capW = w
 	}
 
-	if w > s.Width {
-		for i := 0; i < s.Height; i++ {
-			for j := s.Width; j < w; j++ {
+	if w > s.width {
+		for i := 0; i < s.height; i++ {
+			for j := s.width; j < w; j++ {
 				s.cells[i][j].Value = ' '
 			}
 		}
 	}
 
-	s.Width = w
+	s.width = w
 
 	if h > s.capH {
 		oldCells := s.cells
@@ -102,32 +109,32 @@ func (s *Screen) Resize(w, h int) {
 		s.capH = h
 		copy(s.cells, oldCells)
 
-		for i := s.Height; i < h; i++ {
-			s.cells[i] = make([]Cell, s.Width)
+		for i := s.height; i < h; i++ {
+			s.cells[i] = make([]Cell, s.width)
 		}
 	}
 
-	if h > s.Height {
-		for i := s.Height; i < h; i++ {
-			for j := 0; j < s.Width; j++ {
+	if h > s.height {
+		for i := s.height; i < h; i++ {
+			for j := 0; j < s.width; j++ {
 				s.cells[i][j].Value = ' '
 			}
 		}
 	}
 
-	s.Height = h
+	s.height = h
 }
 
 func (s *Screen) Render() string {
 	builder := strings.Builder{}
 	builder.WriteString("\033[0;0H")
 
-	for i := 0; i < s.Height; i++ {
-		for j := 0; j < s.Width; j++ {
+	for i := 0; i < s.height; i++ {
+		for j := 0; j < s.width; j++ {
 			builder.WriteRune(s.cells[i][j].Value)
 		}
 
-		if i < s.Height-1 {
+		if i < s.height-1 {
 			builder.WriteString("\r\n")
 		}
 	}

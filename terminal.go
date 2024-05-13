@@ -8,8 +8,8 @@ import (
 	"unsafe"
 )
 
-type winSize struct {
-	rows, cols       uint16
+type WinSize struct {
+	Rows, Cols       uint16
 	unused1, unused2 uint16 // these are just here to make the struct the right size for the syscall
 }
 
@@ -18,6 +18,7 @@ type Terminal struct {
 	original syscall.Termios
 	fd       uintptr
 	closed   chan struct{}
+	subs     []chan WinSize
 }
 
 func (t *Terminal) Open(fd uintptr) error {
@@ -42,8 +43,10 @@ func (t *Terminal) Open(fd uintptr) error {
 		}
 		return err
 	}
-	t.Screen = NewScreen(int(ws.cols), int(ws.rows))
+	t.Screen = NewScreen(int(ws.Cols), int(ws.Rows))
 	t.closed = make(chan struct{})
+
+	go t.eventLoop()
 
 	return nil
 }
@@ -63,6 +66,14 @@ func (t *Terminal) Refresh() {
 	fmt.Print(frame)
 }
 
+func (t *Terminal) SubscribeToResizes(c chan WinSize) {
+	t.subs = append(t.subs, c)
+}
+
+func (t *Terminal) Fd() uintptr {
+	return t.fd
+}
+
 func (t *Terminal) eventLoop() {
 	winch := make(chan os.Signal, 1)
 	signal.Notify(winch, syscall.SIGWINCH)
@@ -73,8 +84,14 @@ EventLoop:
 		case <-t.closed:
 			break EventLoop
 		case <-winch:
-			ws, _ := getTerminalSize(t.fd)
-			t.Screen.Resize(int(ws.cols), int(ws.rows))
+			ws, err := getTerminalSize(t.fd)
+			if err != nil {
+				continue
+			}
+			t.Screen.Resize(int(ws.Cols), int(ws.Rows))
+			for _, c := range t.subs {
+				c <- ws
+			}
 			break
 		}
 	}
@@ -82,8 +99,8 @@ EventLoop:
 	close(t.closed)
 }
 
-func getTerminalSize(fd uintptr) (winSize, error) {
-	ws := winSize{}
+func getTerminalSize(fd uintptr) (WinSize, error) {
+	ws := WinSize{}
 
 	_, _, err := syscall.Syscall(
 		syscall.SYS_IOCTL,
