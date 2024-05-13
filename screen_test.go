@@ -109,3 +109,29 @@ func TestSetCol(t *testing.T) {
 		})
 	}
 }
+
+func TestResize(t *testing.T) {
+	testcases := []struct {
+		desc     string
+		w, h     int
+		expected string
+	}{
+		{desc: "wider", w: 3, h: 2, expected: "\033[0;0Hab \r\ncd "},
+		{desc: "narrow", w: 1, h: 2, expected: "\033[0;0Ha\r\nc"},
+		{desc: "taller", w: 2, h: 3, expected: "\033[0;0Hab\r\ncd\r\n  "},
+		{desc: "shorter", w: 2, h: 1, expected: "\033[0;0Hab"},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.desc, func(t *testing.T) {
+			s := interminable.NewScreen(2, 2)
+			s.SetRow(0, 0, "ab")
+			s.SetRow(0, 1, "cd")
+			s.Resize(tc.w, tc.h)
+			result := s.Render()
+			if result != tc.expected {
+				t.Errorf("expected %q, got %q", tc.expected, result)
+			}
+		})
+	}
+}

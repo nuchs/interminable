@@ -2,6 +2,8 @@ package interminable
 
 import (
 	"fmt"
+	"os"
+	"os/signal"
 	"syscall"
 	"unsafe"
 )
@@ -15,14 +17,7 @@ type Terminal struct {
 	Screen   Screen
 	original syscall.Termios
 	fd       uintptr
-}
-
-func (t *Terminal) Close() error {
-	if err := setTermios(t.fd, t.original); err != nil {
-		return fmt.Errorf("Failed to restore terminal: %w", err)
-	}
-
-	return nil
+	closed   chan struct{}
 }
 
 func (t *Terminal) Open(fd uintptr) error {
@@ -48,8 +43,43 @@ func (t *Terminal) Open(fd uintptr) error {
 		return err
 	}
 	t.Screen = NewScreen(int(ws.cols), int(ws.rows))
+	t.closed = make(chan struct{})
 
 	return nil
+}
+
+func (t *Terminal) Close() error {
+	if err := setTermios(t.fd, t.original); err != nil {
+		return fmt.Errorf("Failed to restore terminal: %w", err)
+	}
+
+	t.closed <- struct{}{}
+
+	return nil
+}
+
+func (t *Terminal) Refresh() {
+	frame := t.Screen.Render()
+	fmt.Print(frame)
+}
+
+func (t *Terminal) eventLoop() {
+	winch := make(chan os.Signal, 1)
+	signal.Notify(winch, syscall.SIGWINCH)
+
+EventLoop:
+	for {
+		select {
+		case <-t.closed:
+			break EventLoop
+		case <-winch:
+			ws, _ := getTerminalSize(t.fd)
+			t.Screen.Resize(int(ws.cols), int(ws.rows))
+			break
+		}
+	}
+
+	close(t.closed)
 }
 
 func getTerminalSize(fd uintptr) (winSize, error) {

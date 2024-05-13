@@ -26,8 +26,7 @@ func run() error {
 	x, y := ((term.Screen.Width-1)/2)-6, 5
 	term.Screen.SetRow(x, y, "Hello World")
 	term.Screen.SetCol(x, y, "Hello World")
+	term.Refresh()
 
-	s := term.Screen.Render()
-	fmt.Print(s)
 	return nil
 }

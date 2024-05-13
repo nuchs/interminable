@@ -18,9 +18,9 @@ type Cell struct {
 }
 
 type Screen struct {
-	Width  int
-	Height int
-	cells  [][]Cell
+	Width, Height int
+	capW, capH    int
+	cells         [][]Cell
 }
 
 func NewScreen(w, h int) Screen {
@@ -35,6 +35,8 @@ func NewScreen(w, h int) Screen {
 	return Screen{
 		Width:  w,
 		Height: h,
+		capW:   w,
+		capH:   h,
 		cells:  cells,
 	}
 }
@@ -61,21 +63,6 @@ func (s *Screen) SetRow(col, row int, value string) {
 	}
 }
 
-func negativeClip(ix int, value string) (int, []rune) {
-	runes := []rune(value)
-
-	if ix < 0 {
-		ix *= -1
-		if ix > len(runes) {
-			return 0, []rune{}
-		}
-		runes = runes[ix:]
-		ix = 0
-	}
-
-	return ix, runes
-}
-
 func (s *Screen) SetCol(col, row int, value string) {
 	y, runes := negativeClip(row, value)
 
@@ -88,9 +75,51 @@ func (s *Screen) SetCol(col, row int, value string) {
 	}
 }
 
+func (s *Screen) Resize(w, h int) {
+	if w > s.capW {
+		for i := 0; i < s.Height; i++ {
+			oldCells := s.cells[i]
+			s.cells[i] = make([]Cell, w)
+			copy(s.cells[i], oldCells)
+		}
+
+		s.capW = w
+	}
+
+	if w > s.Width {
+		for i := 0; i < s.Height; i++ {
+			for j := s.Width; j < w; j++ {
+				s.cells[i][j].Value = ' '
+			}
+		}
+	}
+
+	s.Width = w
+
+	if h > s.capH {
+		oldCells := s.cells
+		s.cells = make([][]Cell, h)
+		s.capH = h
+		copy(s.cells, oldCells)
+
+		for i := s.Height; i < h; i++ {
+			s.cells[i] = make([]Cell, s.Width)
+		}
+	}
+
+	if h > s.Height {
+		for i := s.Height; i < h; i++ {
+			for j := 0; j < s.Width; j++ {
+				s.cells[i][j].Value = ' '
+			}
+		}
+	}
+
+	s.Height = h
+}
+
 func (s *Screen) Render() string {
 	builder := strings.Builder{}
-
 	builder.WriteString("\033[0;0H")
 
 	for i := 0; i < s.Height; i++ {
@@ -104,4 +133,19 @@ func (s *Screen) Render() string {
 	}
 
 	return builder.String()
+}
+
+func negativeClip(ix int, value string) (int, []rune) {
+	runes := []rune(value)
+
+	if ix < 0 {
+		ix *= -1
+		if ix > len(runes) {
+			return 0, []rune{}
+		}
+		runes = runes[ix:]
+		ix = 0
+	}
+
+	return ix, runes
 }
